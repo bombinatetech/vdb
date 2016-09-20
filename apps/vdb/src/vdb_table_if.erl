@@ -1,0 +1,36 @@
+-module(vdb_table_if).
+
+-export([write/2,read/2,delete/2,select/2]).
+
+select(Tab,MatchSpec) ->
+	Sel = fun(Tab,MatchSpec) -> mnesia:select(Tab,MatchSpec) end,
+	mnesia:activity(sync_dirty,Sel,[Tab,MatchSpec],mnesia_frag).
+
+write(Tab,Rec)->
+   Write = fun(Rec) ->
+             case mnesia:write(Rec) of
+                ok ->
+                        {ok,updated};
+                Res ->
+                        {error,Res}
+             end
+   end,
+   mnesia:activity(sync_dirty, Write,[Rec],mnesia_frag).
+
+read(Tab,Key) ->
+	Read = fun(Tab,Key) ->
+                case mnesia:read({Tab,Key}) of
+                  [ValList] ->
+                        ValList;
+                   Res ->
+                        Res
+                end
+        end,
+        ValList = mnesia:activity(sync_dirty, Read, [Tab,Key], mnesia_frag),
+	ValList.
+
+
+delete(Tab,Key)->
+        Del = fun(Tab,Key) -> mnesia:delete({Tab,Key}) end,
+        mnesia:activity(sync_dirty, Del, [Tab,Key], mnesia_frag).
+	
