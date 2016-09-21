@@ -35,7 +35,7 @@ init([]) ->
             [
                ?CHILD(vdb_user_sup, supervisor, []),
                ?CHILD(vdb_sub_sup, supervisor, []),
-               ?CHILD(vmq_pub_sup, supervisor, [])
+               ?CHILD(vdb_pub_sup, supervisor, [])
               ]} }.
 
 %%====================================================================

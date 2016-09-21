@@ -4,7 +4,7 @@
 -include("../include/vdb.hrl").
 
 %% API
--export([start_link/0,
+-export([start_link/1,
 	install_subs_table/2,
 	add_sub/2,
 	del_sub/2]).

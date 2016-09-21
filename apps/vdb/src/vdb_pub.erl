@@ -4,7 +4,7 @@
 -include("../include/vdb.hrl").
 
 %% API
--export([start_link/0,
+-export([start_link/1,
 	handle_no_session/2,
 	install_store_table/2,
 	handle_offline_msgs/3,
@@ -159,8 +159,11 @@ handle_req({publish,SubscriberId,#vmq_msg{msg_ref=MsgRef,
 			routing_key=RoutingKey } = Msg},_State) ->
 	route_publish(RoutingKey,MsgRef,Msg);
 
-handle_req({waiting_for_acks,SubscriberId,Msg},_State) ->
+handle_req({waiting_for_acks,SubscriberId,Msg},_State) when is_list(Msg)->
 	store_in_offline(SubscriberId,Msg);
+
+handle_req({waiting_for_acks,SubscriberId,Msg},_State) ->
+	store_in_offline(SubscriberId,[Msg]);
 
 handle_req({no_session,SessionId,Msg},_State) ->
 	Val = #vdb_users{subscriberId = '$1',status = '_',on_node='_',sessionId=SessionId},
@@ -186,21 +189,24 @@ route_publish(RoutingKey,MsgRef,Msg) ->
 			[] ->
 				[];
 			#vdb_users{status = online} = Usr  ->
-				[Usr#vdb_users.on_node,Usr#vdb_users.sessionId];
+				ActiveUsers = [{Usr#vdb_users.on_node,{Usr#vdb_users.subscriberId,
+								Usr#vdb_users.sessionId}}],
+				InactiveUsers = [],
+				{ActiveUsers,[]};
 			#vdb_users{status = offline} = Usr  ->
 				spawn(?MODULE,write_store,[Rec#vdb_topics.subscriberId,Msg]),
-				[]
+				{[],[Usr#vdb_users.subscriberId]}
 		  end
 	end.
 
 session(Recs,MsgRef,Msg) ->
-	UserTab = [vdb_table_if:read(vdb_users,X#vdb_topics.subscriberId) ||X <- 
-					vdb_table_if:read(vdb_topics,[{[<<"junnu">>],1}])],
+	UserTab = [vdb_table_if:read(vdb_users,X#vdb_topics.subscriberId) ||X <- Recs],
 	InactiveUsers = [X#vdb_users.subscriberId || X <- UserTab,X#vdb_users.status == offline],
 	spawn(?MODULE,handle_offline_msgs,[InactiveUsers,MsgRef,Msg]),
-	ActiveUsers = [{X#vdb_users.on_node,X#vdb_users.sessionId} || X <- UserTab, X#vdb_users.status == online ], 
+	ActiveUsers = [{X#vdb_users.on_node,{X#vdb_users.subscriberId, X#vdb_users.sessionId}} || X <- UserTab, X#vdb_users.status == online ], 
 	Nodes = lists:usort([X#vdb_users.on_node || X <- UserTab, X#vdb_users.status == online]),
-	[session_info(X,ActiveUsers) || X <- Nodes,Nodes =/= []].
+	ActiveSessions = [session_info(X,ActiveUsers) || X <- Nodes,Nodes =/= []],
+	{ActiveSessions,InactiveUsers}.
 
 session_info(_Node,[])->
 	{};

@@ -6,6 +6,7 @@
 %% API
 -export([start_link/1,
 	install_user_table/2,
+	user_uninstalled/1,
 	user_online/3,
 	user_offline/1,
 	user_status/1]).
@@ -43,18 +44,6 @@ install_user_table(Nodes,Frag)->
 
 
 
-install_subs_table(Nodes,Frag)->
-%       mnesia:stop(),
-%       mnesia:create_schema(Nodes),
-%       mnesia:start(),
-        mnesia:create_table(vdb_topics,[
-                    {frag_properties,[
-                        {node_pool,Nodes},{hash_module,mnesia_frag_hash},
-                        {n_fragments,Frag},
-                        {n_disc_copies,length(Nodes)}]
-                    },
-                    {index,[]},
-                    {attributes,record_info(fields,vdb_topics)}]).
 
 user_online(SubscriberId,SessionId,Node) ->
 	call({online, SubscriberId, SessionId,Node}).
@@ -67,18 +56,6 @@ user_uninstalled(SubscriberId) ->
 
 user_status(SubscriberId) ->
         call({status, SubscriberId }).
-traverse_table_and_show(Table_name)->
-    Iterator =  fun(Rec,_)->
-                    io:format("~p~n",[Rec]),
-                    []
-                end,
-    case mnesia:is_transaction() of
-        true -> mnesia:foldl(Iterator,[],Table_name);
-        false ->
-            Exec = fun({Fun,Tab}) -> mnesia:foldl(Fun, [],Tab) end,
-            mnesia:activity(transaction,Exec,[{Iterator,Table_name}],mnesia_frag)
-    end.
-
 
 call(Req) ->
 	case vernedb_sup:get_rr_pid() of

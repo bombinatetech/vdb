@@ -5,10 +5,11 @@
   {mod, { vdb_app, []}},
   {applications,
    [kernel,
+    mnesia,
     stdlib
    ]},
   {env,[]},
-  {modules, []},
+  {modules, [mnesia]},
 
   {maintainers, []},
   {licenses, []},
