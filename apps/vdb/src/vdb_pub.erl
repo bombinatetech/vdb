@@ -56,13 +56,13 @@ handle_no_session(SessionId,Msg) ->
 	call({no_session,SessionId,Msg}).
 
 call(Req) ->
-	%case vernedb_sup:get_rr_pid() of
-	%	{ok,Pid} ->
-            		gen_server:call(?MODULE, Req, infinity).
-	%	Res ->
-	%		io:format("no_process~n"),
-	%		{no_process,Res}
-	%end.
+	case vdb_pub_sup:get_rr_pid() of
+		{ok,Pid} ->
+            		gen_server:call(Pid, Req, infinity);
+		Res ->
+			io:format("no_process~n"),
+			{no_process,Res}
+	end.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -181,7 +181,7 @@ store_in_offline(SubscriberId,Msgs) ->
 route_publish(RoutingKey,MsgRef,Msg) ->
 	case vdb_table_if:read(vdb_topics,[{RoutingKey,1}]) of
 		[] ->
-			[];
+			{[],[]};
 		Recs when is_list(Recs) ->
 			session(Recs,MsgRef,Msg);
 		Rec ->
@@ -189,8 +189,8 @@ route_publish(RoutingKey,MsgRef,Msg) ->
 			[] ->
 				[];
 			#vdb_users{status = online} = Usr  ->
-				ActiveUsers = [{Usr#vdb_users.on_node,{Usr#vdb_users.subscriberId,
-								Usr#vdb_users.sessionId}}],
+				ActiveUsers = [{Usr#vdb_users.on_node,[{Usr#vdb_users.subscriberId,
+								Usr#vdb_users.sessionId}]}],
 				InactiveUsers = [],
 				{ActiveUsers,[]};
 			#vdb_users{status = offline} = Usr  ->

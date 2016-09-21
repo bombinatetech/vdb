@@ -62,13 +62,13 @@ traverse_table_and_show(Table_name)->
 
 
 call(Req) ->
-	%case vernedb_sup:get_rr_pid() of
-	%	{ok,Pid} ->
-            		gen_server:call(?MODULE, Req, infinity).
-	%	Res ->
-	%		io:format("no_process~n"),
-	%		{no_process,Res}
-	%end.
+	case vdb_sub_sup:get_rr_pid() of
+		{ok,Pid} ->
+            		gen_server:call(Pid, Req, infinity);
+		Res ->
+			io:format("no_process~n"),
+			{no_process,Res}
+	end.
 
 %%%===================================================================
 %%% gen_server callbacks

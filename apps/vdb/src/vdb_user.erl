@@ -58,7 +58,7 @@ user_status(SubscriberId) ->
         call({status, SubscriberId }).
 
 call(Req) ->
-	case vernedb_sup:get_rr_pid() of
+	case vdb_user_sup:get_rr_pid() of
 		{ok,Pid} ->
             		gen_server:call(Pid, Req, infinity);
 		Res ->
