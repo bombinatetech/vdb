@@ -6,6 +6,7 @@
 %% API
 -export([start_link/1,
 	install_user_table/2,
+	install_retain_table/2,
 	user_uninstalled/1,
 	user_online/3,
 	user_offline/1,
@@ -30,9 +31,6 @@ start_link(Id) ->
 	gen_server:start_link(?MODULE, [Id], []).
 
 install_user_table(Nodes,Frag)->
-%	mnesia:stop(),
-%	mnesia:create_schema(Nodes),
-%	mnesia:start(),
 	mnesia:create_table(vdb_users,[
                     {frag_properties,[
                         {node_pool,Nodes},{hash_module,mnesia_frag_hash},
@@ -43,7 +41,20 @@ install_user_table(Nodes,Frag)->
                     {attributes,record_info(fields,vdb_users)}]).
 
 
+install_retain_table(Nodes,Frag)->
+        mnesia:create_table(vdb_retain,[
+                    {frag_properties,[
+                        {node_pool,Nodes},{hash_module,mnesia_frag_hash},
+                        {n_fragments,Frag},
+                        {n_disc_copies,length(Nodes)}]
+                    },
+                    {index,[]},
+                    {attributes,record_info(fields,vdb_retain)}]).
 
+
+
+user_status(SubscriberId)->
+	call({user_status,SubscriberId}).
 
 user_online(SubscriberId,SessionId,Node) ->
 	call({online, SubscriberId, SessionId,Node}).
@@ -54,8 +65,6 @@ user_offline(SubscriberId) ->
 user_uninstalled(SubscriberId) ->
         call({uninstalled, SubscriberId }).
 
-user_status(SubscriberId) ->
-        call({status, SubscriberId }).
 
 call(Req) ->
 	case vdb_user_sup:get_rr_pid() of
@@ -157,11 +166,21 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
+handle_req({user_status,SubscriberId},_State)->
+   case vdb_table_if:read(vdb_users,SubscriberId) of
+	[] ->
+		{offline,undefined,undefined};
+	Rec ->
+		{Rec#vdb_users.status,Rec#vdb_users.on_node,Rec#vdb_users.sessionId}
+   end;
+
 handle_req({online,SubscriberId,SessionId,Node},_State) ->
    Rec = #vdb_users{subscriberId = SubscriberId,status = online,on_node = Node,sessionId = SessionId},
    vdb_table_if:write(vdb_users,Rec),
    MatchSpec = [{{vdb_store,SubscriberId,'$1'},[],['$1']}],
-   vdb_table_if:select(vdb_store,MatchSpec);
+   Val = vdb_table_if:select(vdb_store,MatchSpec),
+   vdb_table_if:delete(vdb_store,SubscriberId),
+   Val;
 
 handle_req({offline,SubscriberId},_State) ->
    Rec = #vdb_users{subscriberId = SubscriberId,status = offline},

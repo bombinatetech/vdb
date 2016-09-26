@@ -9,6 +9,7 @@
 	install_store_table/2,
 	handle_offline_msgs/3,
 	waiting_for_acks/2,
+	write_store/2,
 	publish/2]).
 
 
@@ -155,9 +156,16 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-handle_req({publish,SubscriberId,#vmq_msg{msg_ref=MsgRef,
+handle_req({publish,SubscriberId,#vmq_msg{msg_ref=MsgRef,retain=Retain,
 			routing_key=RoutingKey } = Msg},_State) ->
-	route_publish(RoutingKey,MsgRef,Msg);
+	Msg1 = Msg#vmq_msg{retain=false},
+	case Retain of
+	   true->
+		store_retain(RoutingKey,Msg1);
+	   _ ->
+		ok
+	end,
+	route_publish(RoutingKey,MsgRef,Msg1);
 
 handle_req({waiting_for_acks,SubscriberId,Msg},_State) when is_list(Msg)->
 	store_in_offline(SubscriberId,Msg);
@@ -177,6 +185,11 @@ handle_req(_,_)->
 store_in_offline(SubscriberId,Msgs) ->
 	[ vdb_table_if:write( vdb_store,#vdb_store{subscriberId = SubscriberId,vmq_msg = X} ) || 
 		{_,_,X} <- Msgs ] .
+
+store_retain(RoutingKey,Msg) ->
+	Rec = #vdb_retain{topic = RoutingKey,vmq_msg = Msg},
+	vdb_table_if:write(vdb_retain,Rec).
+
 
 route_publish(RoutingKey,MsgRef,Msg) ->
 	case vdb_table_if:read(vdb_topics,[{RoutingKey,1}]) of

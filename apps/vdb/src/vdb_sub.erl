@@ -161,11 +161,16 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-handle_req({add_sub,SubscriberId,Topics},_State) ->
+handle_req({add_sub,SubscriberId,[{RoutingKey,1}] = Topics},_State) ->
    Rec = #vdb_topics{subscriberId = SubscriberId,topic = Topics},
-   vdb_table_if:write(vdb_topics,Rec);
-
-
+   vdb_table_if:write(vdb_topics,Rec),
+   case vdb_table_if:read(vdb_retain,RoutingKey) of
+	[] ->
+		[];
+	Rec1 ->
+		Rec1#vdb_retain.vmq_msg
+   end;
+   
 handle_req({del_sub,SubscriberId,Topics},_State) ->
    vdb_table_if:delete(vdb_topics,{Topics,SubscriberId});
 

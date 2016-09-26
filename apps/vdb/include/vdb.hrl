@@ -14,6 +14,9 @@
                          on_node,
 			sessionId }).
 
+-record(vdb_retain,{topic,
+                   vmq_msg }).
+
 -record(vmq_msg, {
           msg_ref,               
           routing_key,           
