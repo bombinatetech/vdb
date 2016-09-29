@@ -10,6 +10,7 @@
 	user_uninstalled/1,
 	user_online/3,
 	user_offline/1,
+	delete_offline_store/1,
 	user_status/1]).
 
 
@@ -54,21 +55,23 @@ install_retain_table(Nodes,Frag)->
 
 
 user_status(SubscriberId)->
-	call({user_status,SubscriberId}).
+	call(SubscriberId,{user_status,SubscriberId}).
 
 user_online(SubscriberId,SessionId,Node) ->
-	call({online, SubscriberId, SessionId,Node}).
+	call(SubscriberId,{online, SubscriberId, SessionId,Node}).
 
 user_offline(SubscriberId) ->
-	call( {offline, SubscriberId }).
+	call(SubscriberId, {offline, SubscriberId }).
 
 user_uninstalled(SubscriberId) ->
-        call({uninstalled, SubscriberId }).
+        call(SubscriberId,{uninstalled, SubscriberId }).
 
 
-call(Req) ->
-	case vdb_user_sup:get_rr_pid() of
+call({[],Key},Req) ->
+	%case vdb_user_sup:get_rr_pid() of
+	case vdb_user_sup:get_server_pid(Key) of
 		{ok,Pid} ->
+			io:format("got pid using phash"),
             		gen_server:call(Pid, Req, infinity);
 		Res ->
 			io:format("no_process~n"),
@@ -175,11 +178,13 @@ handle_req({user_status,SubscriberId},_State)->
    end;
 
 handle_req({online,SubscriberId,SessionId,Node},_State) ->
+   io:format("user online:session:~p~n",[{SubscriberId,SessionId}]),
    Rec = #vdb_users{subscriberId = SubscriberId,status = online,on_node = Node,sessionId = SessionId},
    vdb_table_if:write(vdb_users,Rec),
    MatchSpec = [{{vdb_store,SubscriberId,'$1'},[],['$1']}],
    Val = vdb_table_if:select(vdb_store,MatchSpec),
-   vdb_table_if:delete(vdb_store,SubscriberId),
+   %vdb_table_if:delete(vdb_store,SubscriberId),
+   spawn(?MODULE,delete_offline_store,[SubscriberId]),
    Val;
 
 handle_req({offline,SubscriberId},_State) ->
@@ -199,3 +204,6 @@ handle_req(_,_)->
 	ok.
 
 
+delete_offline_store(SubscriberId)->
+	timer:sleep(5000),
+	vdb_table_if:delete(vdb_store,SubscriberId).

@@ -43,10 +43,10 @@ install_subs_table(Nodes,Frag)->
                     {attributes,record_info(fields,vdb_topics)}]).
 
 add_sub(SubscriberId,Topics)->
-	call({add_sub,SubscriberId,Topics}).
+	call(SubscriberId,{add_sub,SubscriberId,Topics}).
 
 del_sub(SubscriberId,Topics)->
-        call({del_sub,SubscriberId,Topics}).
+        call(SubscriberId,{del_sub,SubscriberId,Topics}).
 
 traverse_table_and_show(Table_name)->
     Iterator =  fun(Rec,_)->
@@ -60,15 +60,17 @@ traverse_table_and_show(Table_name)->
             mnesia:activity(transaction,Exec,[{Iterator,Table_name}],mnesia_frag)
     end.
 
+call({[],Key},Req) ->
+        %case vdb_user_sup:get_rr_pid() of
+        case vdb_user_sup:get_server_pid(Key) of
+                {ok,Pid} ->
+                        io:format("got pid using phash"),
+                        gen_server:call(Pid, Req, infinity);
+                Res ->
+                        io:format("no_process~n"),
+                        {no_process,Res}
+        end.
 
-call(Req) ->
-	case vdb_sub_sup:get_rr_pid() of
-		{ok,Pid} ->
-            		gen_server:call(Pid, Req, infinity);
-		Res ->
-			io:format("no_process~n"),
-			{no_process,Res}
-	end.
 
 %%%===================================================================
 %%% gen_server callbacks

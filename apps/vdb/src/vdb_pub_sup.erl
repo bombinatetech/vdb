@@ -24,16 +24,16 @@ start_link() ->
     {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
 	 [begin
          {ok, CPid} = supervisor:start_child(Pid, child_spec(I)),
-	 ets:insert(?TABLE, {I,CPid})
+	 ets:insert(?TABLE, {CPid})
      end || I <- lists:seq(1, ?NR_OF_CHILDS)],
     {ok, Pid}.
 
 get_server_pid(Key) when is_binary(Key) ->
     Id = erlang:phash2(Key, ?NR_OF_CHILDS) + 1,
-    case ets:lookup(?TABLE, Id) of
+    case lists:nth(Id,ets:tab2list(?TABLE)) of
         [] ->
             {error, no_bucket_found};
-        [{Id, Pid}] ->
+        {Pid} ->
             {ok, Pid}
     end;
 

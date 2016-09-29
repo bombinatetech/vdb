@@ -46,24 +46,26 @@ install_store_table(Nodes,Frag)->
                     {attributes,record_info(fields,vdb_store)}]).
 
 publish(SubscriberId,Msg)->
-	call({publish,SubscriberId,Msg}).
+	call(SubscriberId,{publish,SubscriberId,Msg}).
 
 
 waiting_for_acks(SubscriberId,Msgs)->
-	call({waiting_for_acks,SubscriberId,Msgs}).
+	call(SubscriberId,{waiting_for_acks,SubscriberId,Msgs}).
 
 
 handle_no_session(SessionId,Msg) ->
-	call({no_session,SessionId,Msg}).
+	call(SubscriberId,{no_session,SessionId,Msg}).
 
-call(Req) ->
-	case vdb_pub_sup:get_rr_pid() of
-		{ok,Pid} ->
-            		gen_server:call(Pid, Req, infinity);
-		Res ->
-			io:format("no_process~n"),
-			{no_process,Res}
-	end.
+call({[],Key},Req) ->
+        %case vdb_user_sup:get_rr_pid() of
+        case vdb_pub_sup:get_server_pid(Key) of
+                {ok,Pid} ->
+                        io:format("got pid using phash"),
+                        gen_server:call(Pid, Req, infinity);
+                Res ->
+                        io:format("no_process~n"),
+                        {no_process,Res}
+        end.
 
 %%%===================================================================
 %%% gen_server callbacks
