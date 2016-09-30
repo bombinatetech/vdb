@@ -5,7 +5,6 @@
 
 %% API
 -export([start_link/1,
-	handle_no_session/2,
 	install_store_table/2,
 	handle_offline_msgs/3,
 	waiting_for_acks/2,
@@ -53,8 +52,6 @@ waiting_for_acks(SubscriberId,Msgs)->
 	call(SubscriberId,{waiting_for_acks,SubscriberId,Msgs}).
 
 
-handle_no_session(SessionId,Msg) ->
-	call(SubscriberId,{no_session,SessionId,Msg}).
 
 call({[],Key},Req) ->
         %case vdb_user_sup:get_rr_pid() of

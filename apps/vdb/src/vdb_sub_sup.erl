@@ -35,7 +35,7 @@ get_server_pid(Key) when is_binary(Key) ->
             {error, no_bucket_found};
         {Pid} ->
             {ok, Pid}
-    end;
+    end.
 
 
 get_rr_pid()->
