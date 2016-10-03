@@ -22,6 +22,8 @@
          terminate/2,
          code_change/3]).
 
+-define(TABLE,vdb_user_pool).
+
 -record(state, {future_purpose
                }).
 
@@ -94,8 +96,8 @@ call({[],Key},Req) ->
 %% @end
 %%--------------------------------------------------------------------
 init([Id]) ->
+	ets:insert(?TABLE, {self()}),
 	application:start(lager),
-%	application:start(plumtree),
 	{ok,#state{future_purpose = Id}}.
 %%--------------------------------------------------------------------
 %% @private
@@ -152,6 +154,7 @@ handle_info(_Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
+     ets:delete(?TABLE,self()),
     ok.
 
 %%--------------------------------------------------------------------

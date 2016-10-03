@@ -23,8 +23,7 @@
 start_link() ->
     {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
 	 [begin
-         {ok, CPid} = supervisor:start_child(Pid, child_spec(I)),
-	 ets:insert(?TABLE, {CPid})
+         {ok, CPid} = supervisor:start_child(Pid, child_spec(I))
      end || I <- lists:seq(1, ?NR_OF_CHILDS)],
     {ok, Pid}.
 

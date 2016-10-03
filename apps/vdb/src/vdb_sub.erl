@@ -18,6 +18,8 @@
          terminate/2,
          code_change/3]).
 
+-define(TABLE,vdb_sub_pool).
+
 -record(state, {future_purpose
                }).
 
@@ -43,7 +45,9 @@ install_subs_table(Nodes,Frag)->
                     {attributes,record_info(fields,vdb_topics)}]).
 
 add_sub(SubscriberId,Topics)->
-	call(SubscriberId,{add_sub,SubscriberId,Topics}).
+	Val = call(SubscriberId,{add_sub,SubscriberId,Topics}),
+	io:format("add_sub:retain_msg:~p~n",[Val]),
+	Val.
 
 del_sub(SubscriberId,Topics)->
         call(SubscriberId,{del_sub,SubscriberId,Topics}).
@@ -61,10 +65,9 @@ traverse_table_and_show(Table_name)->
     end.
 
 call({[],Key},Req) ->
-        %case vdb_user_sup:get_rr_pid() of
-        case vdb_user_sup:get_server_pid(Key) of
+        case vdb_sub_sup:get_server_pid(Key) of
                 {ok,Pid} ->
-                        io:format("got pid using phash"),
+                        io:format("got pid using phash:~p~n",[{Pid,Req}]),
                         gen_server:call(Pid, Req, infinity);
                 Res ->
                         io:format("no_process~n"),
@@ -88,8 +91,7 @@ call({[],Key},Req) ->
 %% @end
 %%--------------------------------------------------------------------
 init([I]) ->
-	%application:start(lager),
-%	application:start(plumtree),
+	ets:insert(?TABLE, {self()}),
 	{ok,#state{future_purpose = I}}.
 %%--------------------------------------------------------------------
 %% @private
@@ -146,6 +148,7 @@ handle_info(_Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
+     ets:delete(?TABLE,self()),
     ok.
 
 %%--------------------------------------------------------------------
@@ -164,12 +167,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 handle_req({add_sub,SubscriberId,[{RoutingKey,1}] = Topics},_State) ->
+	io:format("handle_req"),
    Rec = #vdb_topics{subscriberId = SubscriberId,topic = Topics},
    vdb_table_if:write(vdb_topics,Rec),
    case vdb_table_if:read(vdb_retain,RoutingKey) of
 	[] ->
 		[];
 	Rec1 ->
+		io:format("the retain::~p~n",[Rec1]),
 		Rec1#vdb_retain.vmq_msg
    end;
    
@@ -180,7 +185,8 @@ handle_req({read_sub,Key},_State) ->
    vdb_table_if:read(vdb_topics,Key);
 
 
-handle_req(_,_)->
+handle_req(_Othre,_)->
+	io:format("Other:~p~n",[_Othre]),
 	ok.
 
 
