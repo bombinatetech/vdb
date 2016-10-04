@@ -27,7 +27,7 @@ start_link() ->
      end || I <- lists:seq(1, ?NR_OF_CHILDS)],
     {ok, Pid}.
 
-get_server_pid(Key) when is_binary(Key) ->
+get_server_pid(Key) ->
     Id = erlang:phash2(Key, ?NR_OF_CHILDS) + 1,
     case lists:nth(Id,ets:tab2list(?TABLE)) of
         [] ->

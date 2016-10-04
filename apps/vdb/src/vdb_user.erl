@@ -69,7 +69,7 @@ user_uninstalled(SubscriberId) ->
         call(SubscriberId,{uninstalled, SubscriberId }).
 
 
-call({[],Key},Req) ->
+call(Key,Req) ->
 	%case vdb_user_sup:get_rr_pid() of
 	case vdb_user_sup:get_server_pid(Key) of
 		{ok,Pid} ->
@@ -181,7 +181,6 @@ handle_req({user_status,SubscriberId},_State)->
    end;
 
 handle_req({online,SubscriberId,SessionId,Node},_State) ->
-   io:format("user online:session:~p~n",[{SubscriberId,SessionId}]),
    Rec = #vdb_users{subscriberId = SubscriberId,status = online,on_node = Node,sessionId = SessionId},
    vdb_table_if:write(vdb_users,Rec),
    MatchSpec = [{{vdb_store,SubscriberId,'$1'},[],['$1']}],

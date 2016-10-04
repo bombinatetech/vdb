@@ -46,7 +46,6 @@ install_subs_table(Nodes,Frag)->
 
 add_sub(SubscriberId,Topics)->
 	Val = call(SubscriberId,{add_sub,SubscriberId,Topics}),
-	io:format("add_sub:retain_msg:~p~n",[Val]),
 	Val.
 
 del_sub(SubscriberId,Topics)->
@@ -64,10 +63,9 @@ traverse_table_and_show(Table_name)->
             mnesia:activity(transaction,Exec,[{Iterator,Table_name}],mnesia_frag)
     end.
 
-call({[],Key},Req) ->
+call(Key,Req) ->
         case vdb_sub_sup:get_server_pid(Key) of
                 {ok,Pid} ->
-                        io:format("got pid using phash:~p~n",[{Pid,Req}]),
                         gen_server:call(Pid, Req, infinity);
                 Res ->
                         io:format("no_process~n"),
@@ -167,7 +165,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 handle_req({add_sub,SubscriberId,[{RoutingKey,1}] = Topics},_State) ->
-	io:format("handle_req"),
    Rec = #vdb_topics{subscriberId = SubscriberId,topic = Topics},
    vdb_table_if:write(vdb_topics,Rec),
    case vdb_table_if:read(vdb_retain,RoutingKey) of

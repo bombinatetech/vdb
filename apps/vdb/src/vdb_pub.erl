@@ -55,7 +55,7 @@ waiting_for_acks(SubscriberId,Msgs)->
 
 
 
-call({[],Key},Req) ->
+call(Key,Req) ->
         %case vdb_user_sup:get_rr_pid() of
         case vdb_pub_sup:get_server_pid(Key) of
                 {ok,Pid} ->
