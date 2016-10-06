@@ -7,6 +7,7 @@
 -export([start_link/1,
 	install_store_table/2,
 	handle_publish_msgs/4,
+	show_table/1,
 	waiting_for_acks/2,
 	write_store/3,
    	puback/2,
@@ -67,6 +68,18 @@ call(Key,Req) ->
                 Res ->
                         {no_process,Res}
         end.
+
+show_table(Table_name)->
+   Iterator =  fun(Rec,_)->
+                    io:format("~p~n",[Rec]),
+                     []
+                 end,
+     case mnesia:is_transaction() of
+         true -> mnesia:foldl(Iterator,[],Table_name);
+         false ->
+             Exec = fun({Fun,Tab}) -> mnesia:foldl(Fun, [],Tab) end,
+             mnesia:activity(transaction,Exec,[{Iterator,Table_name}],mnesia_frag)
+     end.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -171,9 +184,12 @@ handle_req({publish,SubscriberId,#vmq_msg{msg_ref=MsgRef,retain=Retain,
 	route_publish(RoutingKey,MsgRef,Msg1);
 
 handle_req({puback,SubscriberId,MsgRef},_State) ->
+	%Before = vdb_table_if:read(vdb_store,{SubscriberId,MsgRef}),
 	%MatchSpec = [{{vdb_store,{SubscriberId,MsgRef},SubscriberId,'$1'},[],['$1']}],
 	%Val = vdb_table_if:select(vdb_store,MatchSpec),
 	vdb_table_if:delete(vdb_store,{SubscriberId,MsgRef}),
+	%After = vdb_table_if:read(vdb_store,{SubscriberId,MsgRef}),
+        %io:format("puback after:~p~n",[After]),
 	ok;
 
 handle_req({waiting_for_acks,SubscriberId,Msg},_State) when is_list(Msg)->
@@ -256,4 +272,5 @@ handle_publish_msgs(ActiveUsers,InactiveUsers,MsgRef,Msg) ->
 
 write_store(SubId,MsgRef,Msg)->
 	Rec = #vdb_store{key = {SubId,MsgRef},subscriberId = SubId,vmq_msg = Msg},
-	vdb_table_if:write(vdb_store,Rec).	
+	Val = vdb_table_if:write(vdb_store,Rec),
+	io:format("write_store:~p~n",[Val]).

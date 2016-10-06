@@ -192,6 +192,8 @@ handle_req({offline,SubscriberId},_State) ->
    vdb_table_if:write(vdb_users,Rec);
 
 handle_req({uninstalled,SubscriberId,SessionId,Node},_State) ->
+   remove_subscriptions(SubscriberId),
+   remove_offline_msgs(SubscriberId),
    Rec = #vdb_users{subscriberId = SubscriberId,status = uninstalled},
    vdb_table_if:write(vdb_users,Rec);
 
@@ -203,6 +205,11 @@ handle_req({status,SubscriberId},_State) ->
 handle_req(_,_)->
 	ok.
 
+remove_subscriptions(SubscriberId)->
+	vdb_table_if:delete(vdb_topics,SubscriberId).
+
+remove_offline_msgs(SubscriberId)->
+	vdb_table_if:delete(vdb_store,SubscriberId).
 
 delete_offline_store(SubscriberId)->
 	timer:sleep(5000),
