@@ -73,10 +73,8 @@ call(Key,Req) ->
 	%case vdb_user_sup:get_rr_pid() of
 	case vdb_user_sup:get_server_pid(Key) of
 		{ok,Pid} ->
-			io:format("got pid using phash"),
             		gen_server:call(Pid, Req, infinity);
 		Res ->
-			io:format("no_process~n"),
 			{no_process,Res}
 	end.
 
@@ -183,10 +181,10 @@ handle_req({user_status,SubscriberId},_State)->
 handle_req({online,SubscriberId,SessionId,Node},_State) ->
    Rec = #vdb_users{subscriberId = SubscriberId,status = online,on_node = Node,sessionId = SessionId},
    vdb_table_if:write(vdb_users,Rec),
-   MatchSpec = [{{vdb_store,SubscriberId,'$1'},[],['$1']}],
+   MatchSpec = [{{vdb_store,{SubscriberId,'_'},SubscriberId,'$1'},[],['$1']}],
    Val = vdb_table_if:select(vdb_store,MatchSpec),
    %vdb_table_if:delete(vdb_store,SubscriberId),
-   spawn(?MODULE,delete_offline_store,[SubscriberId]),
+   %spawn(?MODULE,delete_offline_store,[SubscriberId]),
    Val;
 
 handle_req({offline,SubscriberId},_State) ->

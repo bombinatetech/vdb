@@ -51,24 +51,12 @@ add_sub(SubscriberId,Topics)->
 del_sub(SubscriberId,Topics)->
         call(SubscriberId,{del_sub,SubscriberId,Topics}).
 
-traverse_table_and_show(Table_name)->
-    Iterator =  fun(Rec,_)->
-                    io:format("~p~n",[Rec]),
-                    []
-                end,
-    case mnesia:is_transaction() of
-        true -> mnesia:foldl(Iterator,[],Table_name);
-        false ->
-            Exec = fun({Fun,Tab}) -> mnesia:foldl(Fun, [],Tab) end,
-            mnesia:activity(transaction,Exec,[{Iterator,Table_name}],mnesia_frag)
-    end.
 
 call(Key,Req) ->
         case vdb_sub_sup:get_server_pid(Key) of
                 {ok,Pid} ->
                         gen_server:call(Pid, Req, infinity);
                 Res ->
-                        io:format("no_process~n"),
                         {no_process,Res}
         end.
 
@@ -171,7 +159,6 @@ handle_req({add_sub,SubscriberId,[{RoutingKey,1}] = Topics},_State) ->
 	[] ->
 		[];
 	Rec1 ->
-		io:format("the retain::~p~n",[Rec1]),
 		Rec1#vdb_retain.vmq_msg
    end;
    
@@ -183,7 +170,6 @@ handle_req({read_sub,Key},_State) ->
 
 
 handle_req(_Othre,_)->
-	io:format("Other:~p~n",[_Othre]),
 	ok.
 
 

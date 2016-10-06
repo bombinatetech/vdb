@@ -5,7 +5,7 @@
 -record(vdb_topics,{topic,
 		   subscriberId }).
 
--record(vdb_store,{subscriberId,
+-record(vdb_store,{key,subscriberId,
                         vmq_msg }).
 
 
