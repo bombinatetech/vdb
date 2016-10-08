@@ -12,7 +12,8 @@
 -record(vdb_users,{subscriberId,
 			 status,
                          on_node,
-			sessionId }).
+			sessionId,
+			ts }).
 
 -record(vdb_retain,{topic,
                    vmq_msg }).
