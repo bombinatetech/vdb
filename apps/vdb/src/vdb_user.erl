@@ -8,7 +8,7 @@
 	install_user_table/2,
 	install_retain_table/2,
 	user_uninstalled/1,
-	user_online/3,
+	user_online/4,
 	user_offline/1,
 	delete_offline_store/1,
 	user_status/1]).
@@ -59,8 +59,8 @@ install_retain_table(Nodes,Frag)->
 user_status(SubscriberId)->
 	call(SubscriberId,{user_status,SubscriberId}).
 
-user_online(SubscriberId,SessionId,Node) ->
-	call(SubscriberId,{online, SubscriberId, SessionId,Node}).
+user_online(SubscriberId,SessionId,Node,Ts) ->
+	call(SubscriberId,{online, SubscriberId, SessionId,Node,Ts}).
 
 user_offline(SubscriberId) ->
 	call(SubscriberId, {offline, SubscriberId }).
@@ -175,10 +175,11 @@ handle_req({user_status,SubscriberId},_State)->
 	[] ->
 		{offline,undefined,undefined};
 	Rec ->
-		{Rec#vdb_users.status,Rec#vdb_users.on_node,Rec#vdb_users.sessionId}
+		{Rec#vdb_users.status,Rec#vdb_users.on_node,Rec#vdb_users.sessionId,Rec#vdb_users.ts}
    end;
 
 handle_req({online,SubscriberId,SessionId,Node,Ts},_State) ->
+   io:format("User online:~p~n",[SubscriberId]),
    Rec = #vdb_users{subscriberId = SubscriberId,status = online,on_node = Node,sessionId = SessionId,ts = Ts},
    vdb_table_if:write(vdb_users,Rec),
    MatchSpec = [{{vdb_store,{SubscriberId,'_'},SubscriberId,'$1'},[],['$1']}],
