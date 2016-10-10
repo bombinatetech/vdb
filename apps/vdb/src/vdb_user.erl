@@ -179,7 +179,6 @@ handle_req({user_status,SubscriberId},_State)->
    end;
 
 handle_req({online,SubscriberId,SessionId,Node,Ts},_State) ->
-   io:format("User online:~p~n",[SubscriberId]),
    Rec = #vdb_users{subscriberId = SubscriberId,status = online,on_node = Node,sessionId = SessionId,ts = Ts},
    vdb_table_if:write(vdb_users,Rec),
    MatchSpec = [{{vdb_store,{SubscriberId,'_'},SubscriberId,'$1'},[],['$1']}],

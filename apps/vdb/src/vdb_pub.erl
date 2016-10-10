@@ -71,7 +71,6 @@ call(Key,Req) ->
 
 show_table(Table_name)->
    Iterator =  fun(Rec,_)->
-                    io:format("~p~n",[Rec]),
                      []
                  end,
      case mnesia:is_transaction() of
@@ -189,7 +188,6 @@ handle_req({puback,SubscriberId,MsgRef},_State) ->
 	%Val = vdb_table_if:select(vdb_store,MatchSpec),
 	vdb_table_if:delete(vdb_store,{SubscriberId,MsgRef}),
 	%After = vdb_table_if:read(vdb_store,{SubscriberId,MsgRef}),
-        %io:format("puback after:~p~n",[After]),
 	ok;
 
 handle_req({waiting_for_acks,SubscriberId,Msg},_State) when is_list(Msg)->
@@ -272,5 +270,4 @@ handle_publish_msgs(ActiveUsers,InactiveUsers,MsgRef,Msg) ->
 
 write_store(SubId,MsgRef,Msg)->
 	Rec = #vdb_store{key = {SubId,MsgRef},subscriberId = SubId,vmq_msg = Msg},
-	Val = vdb_table_if:write(vdb_store,Rec),
-	io:format("write_store:~p~n",[Val]).
+	vdb_table_if:write(vdb_store,Rec).
