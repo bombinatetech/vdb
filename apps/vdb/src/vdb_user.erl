@@ -10,6 +10,8 @@
 	user_uninstalled/1,
 	user_online/4,
 	user_offline/1,
+	remove_subscriptions/1,
+	remove_offline_msgs/1,
 	delete_offline_store/1,
 	user_status/1]).
 
@@ -191,7 +193,7 @@ handle_req({offline,SubscriberId},_State) ->
    Rec = #vdb_users{subscriberId = SubscriberId,status = offline},
    vdb_table_if:write(vdb_users,Rec);
 
-handle_req({uninstalled,SubscriberId,SessionId,Node},_State) ->
+handle_req({uninstalled,SubscriberId},_State) ->
    remove_subscriptions(SubscriberId),
    remove_offline_msgs(SubscriberId),
    Rec = #vdb_users{subscriberId = SubscriberId,status = uninstalled},
@@ -206,10 +208,16 @@ handle_req(_,_)->
 	ok.
 
 remove_subscriptions(SubscriberId)->
-	vdb_table_if:delete(vdb_topics,SubscriberId).
+	Match1 = [{{vdb_topics,'$1',SubscriberId},[],['$1']}],
+	Topics = vdb_table_if:select(vdb_topics,Match1),
+	[vdb_table_if:delete_object({vdb_topics,X,SubscriberId}) || X<- Topics],
+	ok.
 
 remove_offline_msgs(SubscriberId)->
-	vdb_table_if:delete(vdb_store,SubscriberId).
+	MatchSpec = [{{vdb_store,{SubscriberId,'$1'},SubscriberId,'_'},[],['$1']}],
+	MsgRefs = vdb_table_if:select(vdb_store,MatchSpec),
+	[vdb_table_if:delete(vdb_store,{SubscriberId,X}) || X <- MsgRefs],
+	ok.
 
 delete_offline_store(SubscriberId)->
 	timer:sleep(5000),
